@@ -1,0 +1,42 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+      pull-requests: write
+    env:
+      GOOGLE_CLOUD_PROJECT: ${{ vars.GOOGLE_CLOUD_PROJECT }}
+      GOOGLE_CLOUD_LOCATION: us-central1
+      SERVICE_NAME: ${{ github.event_name == 'pull_request' && format('logomaker{0}', github.event.pull_request.number) || 'logomaker' }}
+      IMAGE: ${{ github.event_name == 'pull_request' && format('us-central1-docker.pkg.dev/{0}/logo-maker/pr-{1}-app:pr-{1}', vars.GOOGLE_CLOUD_PROJECT, github.event.pull_request.number) || format('us-central1-docker.pkg.dev/{0}/logo-maker/app:latest', vars.GOOGLE_CLOUD_PROJECT) }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          project_id: ${{ vars.GOOGLE_CLOUD_PROJECT }}
+          credentials_json: ${{ secrets.CREDS }}
+
+      - id: 'deploy'
+        uses: 'google-github-actions/deploy-cloudrun@v2'
+        with:
+          service: ${{ env.SERVICE_NAME }}
+          source: .
+          project_id: ${{ vars.GOOGLE_CLOUD_PROJECT }}
+          region: ${{ vars.GOOGLE_CLOUD_LOCATION }}
+
+      - name: 'Print deployed service URL'
+        run: |
+          echo "Service URL: ${{ steps.deploy.outputs.url }}"

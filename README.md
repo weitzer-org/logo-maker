@@ -94,53 +94,69 @@ A modern web application for generating ASCII art text logos.
 
 ### Deploying to Google Cloud Run
 
-1. Set your Google Cloud project ID as an environment variable:
+1. Set your Google Cloud project ID, location, and service name as environment variables:
    ```sh
-   export PROJECT_ID="your-gcp-project-id"
+   export GOOGLE_CLOUD_PROJECT="your-gcp-project-id"
+   export GOOGLE_CLOUD_LOCATION="us-central1"  # or your preferred region
+   export LOGO_MAKER_SERVICE="logo-maker"      # or your preferred service name
    ```
 
 2. Create an Artifact Registry repository (first time only):
    ```sh
-   gcloud artifacts repositories create logo-maker \
-     --project=${PROJECT_ID} \
+   gcloud artifacts repositories create ${LOGO_MAKER_SERVICE} \
+     --project=${GOOGLE_CLOUD_PROJECT} \
      --repository-format=docker \
-     --location=us-central1 \
+     --location=${GOOGLE_CLOUD_LOCATION} \
      --description="Docker repository for Logo Maker application"
    ```
 
 3. Configure Docker to use Google Cloud as a credential helper:
    ```sh
-   gcloud auth configure-docker us-central1-docker.pkg.dev
+   gcloud auth configure-docker \
+     ${GOOGLE_CLOUD_LOCATION}-docker.pkg.dev
    ```
 
-4. Build the Docker image locally:
-   ```sh
-   docker build --platform=linux/amd64 -t us-central1-docker.pkg.dev/${PROJECT_ID}/logo-maker/app:latest .
-   ```
-
-5. Push the image to Artifact Registry:
-   ```sh
-   docker push us-central1-docker.pkg.dev/${PROJECT_ID}/logo-maker/app:latest
-   ```
-
-   Alternatively, use Cloud Build to build and push in one step (recommended for Cloud Run):
+4. Build and push the Docker image with Cloud Build:
    ```sh
    gcloud builds submit \
-     --project=${PROJECT_ID} \
-     --tag us-central1-docker.pkg.dev/${PROJECT_ID}/logo-maker/app:latest
+     --project=${GOOGLE_CLOUD_PROJECT} \
+     --tag ${GOOGLE_CLOUD_LOCATION}-docker.pkg.dev/${GOOGLE_CLOUD_PROJECT}/logo-maker/app:latest
    ```
 
-6. Deploy to Cloud Run:
+5. Deploy to Cloud Run:
    ```sh
-   gcloud run deploy logo-maker \
-     --project=${PROJECT_ID} \
-     --image us-central1-docker.pkg.dev/${PROJECT_ID}/logo-maker/app:latest \
+   gcloud run deploy ${LOGO_MAKER_SERVICE} \
+     --project=${GOOGLE_CLOUD_PROJECT} \
+     --image ${GOOGLE_CLOUD_LOCATION}-docker.pkg.dev/${GOOGLE_CLOUD_PROJECT}/${LOGO_MAKER_SERVICE}/app:latest \
      --platform managed \
-     --region us-central1 \
+     --region=${GOOGLE_CLOUD_LOCATION} \
      --allow-unauthenticated
    ```
 
-7. Access your application at the URL provided by Cloud Run after deployment.
+6. Access your application at the URL provided by Cloud Run after deployment.
+
+## Running the GitHub Actions Cloud Run Deployment Workflow
+
+This project includes a GitHub Actions workflow (`.github/workflows/ci.yml`) that automatically builds and deploys your app to Google Cloud Run on every push to `main` and for every pull request (PR) for preview deployments.
+
+### How to Use
+
+1. In your GitHub repository, go to **Settings > Variables** and add the following repository variables:
+   - `GOOGLE_CLOUD_PROJECT`: Your Google Cloud project ID
+   - `GOOGLE_CLOUD_LOCATION`: The region for your Cloud Run service (e.g., `us-central1`)
+   - `GCP_WIF_PROVIDER`: The Workload Identity Federation provider resource name
+
+2. Push to the `main` branch or open a pull request. The workflow will:
+   - Build and push a Docker image to Artifact Registry using Cloud Build
+   - Deploy to Cloud Run
+   - For PRs, deploy to a unique preview service (e.g., `pr-123-logo-maker`)
+   - For `main`, deploy to the production service (default: `logo-maker`)
+
+3. The workflow output will include the deployed service URL.
+
+**Note:**
+- By default, deployed services require authentication. To make the service public, add `--allow-unauthenticated` to the deploy step in `.github/workflows/ci.yml`.
+- You can monitor workflow runs and logs in the **Actions** tab of your GitHub repository.
 
 ## Customizing ASCII Art Fonts
 
