@@ -1,0 +1,4 @@
+flask==2.3.3
+pyfiglet==0.8.post1
+setuptools>=42.0.0
+gunicorn==20.1.0

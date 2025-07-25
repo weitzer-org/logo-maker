@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Logo Maker - ASCII Art Generator</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1 class="logo">Logo Maker</h1>
+            <p class="tagline">Transform your text into beautiful ASCII art</p>
+        </header>
+        
+        <main>
+            <section class="info-section">
+                <h2>About ASCII Art</h2>
+                <p>ASCII art is a graphic design technique that creates images using text characters. 
+                   Create your own custom ASCII art logo by entering your text in the form.</p>
+            </section>
+            
+            <div class="layout-container">
+                <section class="generator-section">
+                    <h2>Input</h2>
+                    <form method="POST">
+                        <div class="form-group">
+                            <label for="text">Enter your text:</label>
+                            <input type="text" id="text" name="text" placeholder="Your text here..." required>
+                        </div>
+                        <button type="submit" class="generate-btn">Generate ASCII Art</button>
+                    </form>
+                </section>
+                
+                <section class="result-section {% if not ascii_art %}empty{% endif %}">
+                    <h2>Your Logo</h2>
+                    {% if ascii_art %}
+                    <div class="ascii-result">
+                        <pre>{{ ascii_art }}</pre>
+                    </div>
+                    <div class="actions">
+                        <button class="copy-btn" onclick="copyAsciiArt()">Copy to Clipboard</button>
+                    </div>
+                    {% else %}
+                    <div class="empty-result">
+                        <p>Your ASCII art will appear here</p>
+                    </div>
+                    {% endif %}
+                </section>
+            </div>
+        </main>
+        
+        <footer>
+            <p>&copy; 2025 Google LLC. All rights reserved.</p>
+        </footer>
+    </div>
+
+    <script>
+        function copyAsciiArt() {
+            const asciiArt = document.querySelector('.ascii-result pre').innerText;
+            navigator.clipboard.writeText(asciiArt)
+                .then(() => {
+                    alert('ASCII art copied to clipboard!');
+                })
+                .catch(err => {
+                    console.error('Failed to copy: ', err);
+                });
+        }
+    </script>
+</body>
+</html>
