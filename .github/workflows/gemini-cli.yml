@@ -198,6 +198,9 @@ jobs:
                 "run_shell_command(git commit)",
                 "run_shell_command(git push)",
                 "run_shell_command(git diff)",
+                "run_shell_command(git log)",
+                "run_shell_command(git branch)",
+                "run_shell_command(git checkout)",
                 "LSTool",
                 "ReadFileTool",
                 "WriteFileTool",
@@ -240,9 +243,8 @@ jobs:
                - Carefully read the user request and the related issue or PR description.
                - Use available tools to gather all relevant context (e.g., `gh issue view`, `gh pr view`, `gh pr diff`, `cat`, `head`, `tail`).
                - Identify the root cause of the problem before proceeding.
-               - **Create a plan as a checklist**:
-                 - Outline the steps needed to resolve the issue or address the request.
-                 - Post the plan as a checklist comment on the issue or PR (use GitHub markdown checkboxes: `- [ ] Task`).
+               - **Show and maintain a plan as a checklist**:
+                 - At the very beginning, outline the steps needed to resolve the issue or address the request and post them as a checklist comment on the issue or PR (use GitHub markdown checkboxes: `- [ ] Task`).
                  - Example:
                    ```
                    ### Plan
@@ -252,9 +254,14 @@ jobs:
                    - [ ] Update documentation
                    - [ ] Verify the fix and close the issue
                    ```
-                 - Use: `gh pr comment "${ISSUE_NUMBER}" --body "<plan>"` or `gh issue comment "${ISSUE_NUMBER}" --body "<plan>"`
-               - As you complete each step, update the checklist by editing the comment (check off completed tasks with `- [x]`).
-                 - Use: `gh pr comment --edit <comment-id> --body "<updated plan>"` or `gh issue comment --edit <comment-id> --body "<updated plan>"`
+                 - Use: `gh pr comment "${ISSUE_NUMBER}" --body "<plan>"` or `gh issue comment "${ISSUE_NUMBER}" --body "<plan>"` to post the initial plan.
+                 - As you make progress, keep the checklist visible and up to date by editing the same comment (check off completed tasks with `- [x]`).
+                   - To update the checklist:
+                     1. Find the comment ID for the checklist (use `gh pr comment list "${ISSUE_NUMBER}"` or `gh issue comment list "${ISSUE_NUMBER}"`).
+                     2. Edit the comment with the updated checklist:
+                        - For PRs: `gh pr comment --edit <comment-id> --body "<updated plan>"`
+                        - For Issues: `gh issue comment --edit <comment-id> --body "<updated plan>"`
+                     3. The checklist should only be maintained as a comment on the issue or PR. Do not track or update the checklist in code files.
                - If the fix requires code changes, determine which files and lines are affected. If clarification is needed, note any questions for the user.
                - Make the necessary code or documentation changes using the available tools (e.g., `write_file`). Ensure all changes follow project conventions and best practices. Reference all shell variables as `"${VAR}"` (with quotes and braces) to prevent errors.
                - Run any relevant tests or checks to verify the fix works as intended. If possible, provide evidence (test output, screenshots, etc.) that the issue is resolved.
