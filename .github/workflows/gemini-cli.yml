@@ -198,7 +198,16 @@ jobs:
                 "run_shell_command(git commit)",
                 "run_shell_command(git push)",
                 "run_shell_command(git diff)",
-                "write_file"
+                "LSTool",
+                "ReadFileTool",
+                "WriteFileTool",
+                "GrepTool",
+                "GlobTool",
+                "EditTool",
+                "ReadManyFilesTool",
+                "WebFetchTool",
+                "WebSearchTool",
+                "MemoryTool"
               ],
               "telemetry": {
                 "enabled": false,
