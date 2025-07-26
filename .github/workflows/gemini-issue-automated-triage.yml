@@ -100,7 +100,9 @@ jobs:
                variables: "${ISSUE_TITLE}" and "${ISSUE_BODY}".
             3. Select the most relevant labels from the existing labels. If
                available, set labels that follow the `kind/*`, `area/*`, and
-               `priority/*` patterns.
+               `priority/*` patterns. If an issue is a bug, use the
+               `kind/bug` label. If it is a feature request, use the
+               `kind/enhancement` label.
             4. Apply the selected labels to this issue using:
                `gh issue edit "${ISSUE_NUMBER}" --add-label "label1,label2"`
             5. If the "status/needs-triage" label is present, remove it using:
