@@ -136,6 +136,11 @@ jobs:
             echo "is_pr=${IS_PR}"
           } >> "${GITHUB_OUTPUT}"
 
+      - name: 'Set up git user for commits'
+        run: |
+          git config --global user.name 'gemini-cli[bot]'
+          git config --global user.email 'gemini-cli[bot]@users.noreply.github.com'
+
       - name: 'Checkout PR branch'
         if: |-
           ${{  steps.get_context.outputs.is_pr == 'true' }}
@@ -154,16 +159,6 @@ jobs:
           token: '${{ steps.generate_token.outputs.token || secrets.GITHUB_TOKEN }}'
           repository: '${{ github.repository }}'
           fetch-depth: 0
-
-      - name: 'Acknowledge request'
-        env:
-          GITHUB_TOKEN: '${{ steps.generate_token.outputs.token || secrets.GITHUB_TOKEN }}'
-          ISSUE_NUMBER: '${{ steps.get_context.outputs.issue_number }}'
-          REPOSITORY: '${{ github.repository }}'
-        run: |-
-          gh issue comment "${ISSUE_NUMBER}" \
-            --body "I've received your request and I'm working on it now! 🤖" \
-            --repo "${REPOSITORY}"
 
       - name: 'Run Gemini'
         uses: 'google-github-actions/run-gemini-cli@main'
@@ -206,7 +201,7 @@ jobs:
                 "write_file"
               ],
               "telemetry": {
-                "enabled": true,
+                "enabled": false,
                 "target": "gcp"
               },
               "sandbox": false
