@@ -177,47 +177,6 @@ jobs:
           GOOGLE_GENAI_USE_GCA: '${{ vars.GOOGLE_GENAI_USE_GCA }}'
           SERVICE_ACCOUNT_EMAIL: '${{ vars.SERVICE_ACCOUNT_EMAIL }}'
         with:
-          settings: |
-            {
-              "coreTools": [
-                "run_shell_command(echo)",
-                "run_shell_command(gh pr view)",
-                "run_shell_command(gh pr diff)",
-                "run_shell_command(gh pr list)",
-                "run_shell_command(gh issue view)",
-                "run_shell_command(gh issue comment)",
-                "run_shell_command(gh issue list)",
-                "run_shell_command(gh pr comment)",
-                "run_shell_command(cat)",
-                "run_shell_command(head)",
-                "run_shell_command(tail)",
-                "run_shell_command(grep)",
-                "run_shell_command(git config)",
-                "run_shell_command(git status)",
-                "run_shell_command(git add)",
-                "run_shell_command(git commit)",
-                "run_shell_command(git push)",
-                "run_shell_command(git diff)",
-                "run_shell_command(git log)",
-                "run_shell_command(git branch)",
-                "run_shell_command(git checkout)",
-                "LSTool",
-                "ReadFileTool",
-                "WriteFileTool",
-                "GrepTool",
-                "GlobTool",
-                "EditTool",
-                "ReadManyFilesTool",
-                "WebFetchTool",
-                "WebSearchTool",
-                "MemoryTool"
-              ],
-              "telemetry": {
-                "enabled": false,
-                "target": "gcp"
-              },
-              "sandbox": false
-            }
           prompt: |
             ## Role
 
