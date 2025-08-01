@@ -44,37 +44,38 @@ jobs:
 
     steps:
       - name: 'Checkout repository'
-        uses: 'actions/checkout@v4'
+        uses: 'actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683' # ratchet:actions/checkout@v4
 
       - name: 'Generate GitHub App Token'
         id: 'generate_token'
         if: |-
           ${{ vars.APP_ID }}
-        uses: 'actions/create-github-app-token@v1'
+        uses: 'actions/create-github-app-token@df432ceedc7162793a195dd1713ff69aefc7379e' # ratchet:actions/create-github-app-token@v2
         with:
           app-id: '${{ vars.APP_ID }}'
           private-key: '${{ secrets.APP_PRIVATE_KEY }}'
 
       - name: 'Run Gemini Issue Triage'
         uses: 'google-github-actions/run-gemini-cli@main'
+        id: 'gemini_issue_triage'
         env:
           GITHUB_TOKEN: '${{ steps.generate_token.outputs.token || secrets.GITHUB_TOKEN }}'
           ISSUE_TITLE: '${{ github.event.issue.title }}'
           ISSUE_BODY: '${{ github.event.issue.body }}'
           ISSUE_NUMBER: '${{ github.event.issue.number }}'
           REPOSITORY: '${{ github.repository }}'
-          GEMINI_CLI_VERSION: '${{ vars.GEMINI_CLI_VERSION }}'
-          OTLP_GOOGLE_CLOUD_PROJECT: '${{ vars.OTLP_GOOGLE_CLOUD_PROJECT }}'
-          GCP_WIF_PROVIDER: '${{ vars.GCP_WIF_PROVIDER }}'
-          GEMINI_API_KEY: '${{ secrets.GEMINI_API_KEY }}'
-          GOOGLE_CLOUD_PROJECT: '${{ vars.GOOGLE_CLOUD_PROJECT }}'
-          GOOGLE_CLOUD_LOCATION: '${{ vars.GOOGLE_CLOUD_LOCATION }}'
-          GOOGLE_GENAI_USE_VERTEXAI: '${{ vars.GOOGLE_GENAI_USE_VERTEXAI }}'
-          GOOGLE_GENAI_USE_GCA: '${{ vars.GOOGLE_GENAI_USE_GCA }}'
-          SERVICE_ACCOUNT_EMAIL: '${{ vars.SERVICE_ACCOUNT_EMAIL }}'
         with:
+          gemini_cli_version: '${{ vars.GEMINI_CLI_VERSION }}'
+          gcp_workload_identity_provider: '${{ vars.GCP_WIF_PROVIDER }}'
+          gcp_project_id: '${{ vars.GOOGLE_CLOUD_PROJECT }}'
+          gcp_location: '${{ vars.GOOGLE_CLOUD_LOCATION }}'
+          gcp_service_account: '${{ vars.SERVICE_ACCOUNT_EMAIL }}'
+          gemini_api_key: '${{ secrets.GEMINI_API_KEY }}'
+          use_vertex_ai: '${{ vars.GOOGLE_GENAI_USE_VERTEXAI }}'
+          use_gemini_code_assist: '${{ vars.GOOGLE_GENAI_USE_GCA }}'
           settings: |-
             {
+              "maxSessionTurns": 25,
               "coreTools": [
                 "run_shell_command(gh label list)",
                 "run_shell_command(gh issue edit)"
@@ -101,9 +102,6 @@ jobs:
             3. Select the most relevant labels from the existing labels. If
                available, set labels that follow the `kind/*`, `area/*`, and
                `priority/*` patterns.
-               - Only use the `kind/bug` label if the issue clearly describes a defect, error, or unintended behavior in the software.
-               - If the issue is a feature request, improvement, or enhancement, use the `kind/enhancement` label instead.
-               - If unsure, prefer `kind/enhancement` unless the issue explicitly reports a bug.
             4. Apply the selected labels to this issue using:
                `gh issue edit "${ISSUE_NUMBER}" --add-label "label1,label2"`
             5. If the "status/needs-triage" label is present, remove it using:

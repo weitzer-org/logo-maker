@@ -61,20 +61,18 @@ jobs:
           github.event.review.author_association == 'COLLABORATOR'
         )
       )
-    timeout-minutes: 15
+    timeout-minutes: 5
     runs-on: 'ubuntu-latest'
 
     steps:
       - name: 'Checkout PR code'
-        uses: 'actions/checkout@v4'
-        with:
-          fetch-depth: 0
+        uses: 'actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683' # ratchet:actions/checkout@v4
 
       - name: 'Generate GitHub App Token'
         id: 'generate_token'
         if: |-
           ${{ vars.APP_ID }}
-        uses: 'actions/create-github-app-token@v1'
+        uses: 'actions/create-github-app-token@df432ceedc7162793a195dd1713ff69aefc7379e' # ratchet:actions/create-github-app-token@v2
         with:
           app-id: '${{ vars.APP_ID }}'
           private-key: '${{ secrets.APP_PRIVATE_KEY }}'
@@ -111,6 +109,7 @@ jobs:
             echo "EOF"
           } >> "${GITHUB_OUTPUT}"
 
+
       - name: 'Get PR details (issue_comment)'
         id: 'get_pr_comment'
         if: |-
@@ -144,6 +143,7 @@ jobs:
 
       - name: 'Run Gemini PR Review'
         uses: 'google-github-actions/run-gemini-cli@main'
+        id: 'gemini_pr_review'
         env:
           GITHUB_TOKEN: '${{ steps.generate_token.outputs.token || secrets.GITHUB_TOKEN }}'
           PR_NUMBER: '${{ steps.get_pr.outputs.pr_number || steps.get_pr_comment.outputs.pr_number }}'
@@ -151,23 +151,41 @@ jobs:
           CHANGED_FILES: '${{ steps.get_pr.outputs.changed_files || steps.get_pr_comment.outputs.changed_files }}'
           ADDITIONAL_INSTRUCTIONS: '${{ steps.get_pr.outputs.additional_instructions || steps.get_pr_comment.outputs.additional_instructions }}'
           REPOSITORY: '${{ github.repository }}'
-          GEMINI_CLI_VERSION: '${{ vars.GEMINI_CLI_VERSION }}'
-          OTLP_GOOGLE_CLOUD_PROJECT: '${{ vars.OTLP_GOOGLE_CLOUD_PROJECT }}'
-          GCP_WIF_PROVIDER: '${{ vars.GCP_WIF_PROVIDER }}'
-          GEMINI_API_KEY: '${{ secrets.GEMINI_API_KEY }}'
-          GOOGLE_CLOUD_PROJECT: '${{ vars.GOOGLE_CLOUD_PROJECT }}'
-          GOOGLE_CLOUD_LOCATION: '${{ vars.GOOGLE_CLOUD_LOCATION }}'
-          GOOGLE_GENAI_USE_VERTEXAI: '${{ vars.GOOGLE_GENAI_USE_VERTEXAI }}'
-          GOOGLE_GENAI_USE_GCA: '${{ vars.GOOGLE_GENAI_USE_GCA }}'
-          SERVICE_ACCOUNT_EMAIL: '${{ vars.SERVICE_ACCOUNT_EMAIL }}'
         with:
+          gemini_cli_version: '${{ vars.GEMINI_CLI_VERSION }}'
+          gcp_workload_identity_provider: '${{ vars.GCP_WIF_PROVIDER }}'
+          gcp_project_id: '${{ vars.GOOGLE_CLOUD_PROJECT }}'
+          gcp_location: '${{ vars.GOOGLE_CLOUD_LOCATION }}'
+          gcp_service_account: '${{ vars.SERVICE_ACCOUNT_EMAIL }}'
+          gemini_api_key: '${{ secrets.GEMINI_API_KEY }}'
+          use_vertex_ai: '${{ vars.GOOGLE_GENAI_USE_VERTEXAI }}'
+          use_gemini_code_assist: '${{ vars.GOOGLE_GENAI_USE_GCA }}'
           settings: |-
             {
+              "maxSessionTurns": 20,
+              "mcpServers": {
+                "github": {
+                  "command": "docker",
+                  "args": [
+                    "run",
+                    "-i",
+                    "--rm",
+                    "-e",
+                    "GITHUB_PERSONAL_ACCESS_TOKEN",
+                    "ghcr.io/github/github-mcp-server"
+                  ],
+                  "env": {
+                    "GITHUB_PERSONAL_ACCESS_TOKEN": "${GITHUB_TOKEN}"
+                  }
+                }
+              },
               "coreTools": [
+                "mcp__github__create_pending_pull_request_review",
+                "mcp__github__add_comment_to_pending_review",
+                "mcp__github__submit_pending_pull_request_review",
                 "run_shell_command(echo)",
                 "run_shell_command(gh pr view)",
                 "run_shell_command(gh pr diff)",
-                "run_shell_command(gh pr comment)",
                 "run_shell_command(cat)",
                 "run_shell_command(head)",
                 "run_shell_command(tail)",
@@ -175,7 +193,7 @@ jobs:
                 "write_file"
               ],
               "telemetry": {
-                "enabled": false,
+                "enabled": true,
                 "target": "gcp"
               },
               "sandbox": false
@@ -214,11 +232,37 @@ jobs:
 
             ## Review
 
-            Once you have the information, provide a comprehensive code review by:
-            1. Writing your review to a file: write_file("review.md", "<your
-               detailed review feedback here>")
-            2. Posting the review: gh pr comment "${PR_NUMBER}" --body-file
-               review.md --repo "${REPOSITORY}"
+            Once you have the information, provide your review in two stages:
+
+            1. **High-Level Feedback**
+               - Write a high-level summary and general feedback about the PR, including overall assessment, highlights, and any questions.
+               - Use the markdown format specified in the ## Output section below for your high-level feedback.
+               - Save this feedback to a file: write_file("review.md", "<your high-level review feedback here>")
+               - Post this feedback as the main review comment using mcp__github__create_pending_pull_request_review.
+
+            2. **Inline Comments**
+               - For specific code suggestions, issues, or questions, add inline comments using mcp__github__add_comment_to_pending_review. Repeat this step for each code location.
+               - Inline comments should:
+                 - Reference the exact line(s) of code.
+                 - Include actionable suggestions, preferably using a code block labeled "suggestion":
+                   {{COMMENT_TEXT}}
+                   ```suggestion
+                   {{CODE_SUGGESTION}}
+                   ```
+                 - Prepend a priority emoji to each comment:
+                   - 🟢 for low priority
+                   - 🟡 for medium priority
+                   - 🟠 for high priority
+                   - 🔴 for critical priority
+                   - 🔵 if priority is unclear
+                 - Example:
+                   ```
+                   🟠
+                   This is a high priority issue.
+                   ```
+
+            3. **Submit the Review**
+               - Use mcp__github__submit_pending_pull_request_review to submit the Pending Pull Request Review after posting the high-level feedback and all inline comments.
 
             Review Areas:
             - **Security**: Authentication, authorization, input validation,
@@ -233,7 +277,7 @@ jobs:
 
             ## Output
 
-            Structure your review using this exact format with markdown:
+            Structure your general feedback using this exact format with markdown:
             '''
             ## 📋 Review Summary
 
@@ -245,46 +289,6 @@ jobs:
             - Mention overall patterns or architectural decisions
             - Highlight positive aspects of the implementation
             - Note any recurring themes across files
-
-            ## 🎯 Specific Feedback
-            (Only include sections below that have actual issues)
-
-            ### 🔴 Critical
-
-            (Only include this section if there are critical issues)
-
-            Issues that must be addressed before merging (security
-            vulnerabilities, breaking changes, major bugs):
-            - **File: `filename:line`** - Description of critical issue with
-              specific recommendation
-
-            ### 🟡 High
-
-            (Only include this section if there are high priority issues)
-
-            Important issues that should be addressed (performance problems,
-            design flaws, significant bugs):
-            - **File: `filename:line`** - Description of high priority issue
-              with suggested fix
-
-            ### 🟢 Medium
-
-            (Only include this section if there are medium priority issues)
-
-            Improvements that would enhance code quality (style issues, minor
-            optimizations, better practices):
-            - **File: `filename:line`** - Description of medium priority improvement
-
-            ### 🔵 Low
-
-            (Only include this section if there are suggestions)
-
-            Nice-to-have improvements and suggestions (documentation, naming,
-            minor refactoring):
-            - **File: `filename:line`** - Description of suggestion or
-              enhancement **Note**: If no specific issues are found in any
-              category, simply state "No specific issues identified in this
-              review."
 
             ## ✅ Highlights
 

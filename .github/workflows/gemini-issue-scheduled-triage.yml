@@ -21,18 +21,18 @@ permissions:
 
 jobs:
   triage-issues:
-    timeout-minutes: 10
+    timeout-minutes: 5
     runs-on: 'ubuntu-latest'
 
     steps:
       - name: 'Checkout repository'
-        uses: 'actions/checkout@v4'
+        uses: 'actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683' # ratchet:actions/checkout@v4
 
       - name: 'Generate GitHub App Token'
         id: 'generate_token'
         if: |-
           ${{ vars.APP_ID }}
-        uses: 'actions/create-github-app-token@v1'
+        uses: 'actions/create-github-app-token@df432ceedc7162793a195dd1713ff69aefc7379e' # ratchet:actions/create-github-app-token@v2
         with:
           app-id: '${{ vars.APP_ID }}'
           private-key: '${{ secrets.APP_PRIVATE_KEY }}'
@@ -67,22 +67,23 @@ jobs:
         if: |-
           ${{ steps.find_issues.outputs.issues_to_triage != '[]' }}
         uses: 'google-github-actions/run-gemini-cli@main'
+        id: 'gemini_issue_triage'
         env:
           GITHUB_TOKEN: '${{ steps.generate_token.outputs.token }}'
           ISSUES_TO_TRIAGE: '${{ steps.find_issues.outputs.issues_to_triage }}'
           REPOSITORY: '${{ github.repository }}'
-          GEMINI_CLI_VERSION: '${{ vars.GEMINI_CLI_VERSION }}'
-          OTLP_GOOGLE_CLOUD_PROJECT: '${{ vars.OTLP_GOOGLE_CLOUD_PROJECT }}'
-          GCP_WIF_PROVIDER: '${{ vars.GCP_WIF_PROVIDER }}'
-          GEMINI_API_KEY: '${{ secrets.GEMINI_API_KEY }}'
-          GOOGLE_CLOUD_PROJECT: '${{ vars.GOOGLE_CLOUD_PROJECT }}'
-          GOOGLE_CLOUD_LOCATION: '${{ vars.GOOGLE_CLOUD_LOCATION }}'
-          GOOGLE_GENAI_USE_VERTEXAI: '${{ vars.GOOGLE_GENAI_USE_VERTEXAI }}'
-          GOOGLE_GENAI_USE_GCA: '${{ vars.GOOGLE_GENAI_USE_GCA }}'
-          SERVICE_ACCOUNT_EMAIL: '${{ vars.SERVICE_ACCOUNT_EMAIL }}'
         with:
+          gemini_cli_version: '${{ vars.GEMINI_CLI_VERSION }}'
+          gcp_workload_identity_provider: '${{ vars.GCP_WIF_PROVIDER }}'
+          gcp_project_id: '${{ vars.GOOGLE_CLOUD_PROJECT }}'
+          gcp_location: '${{ vars.GOOGLE_CLOUD_LOCATION }}'
+          gcp_service_account: '${{ vars.SERVICE_ACCOUNT_EMAIL }}'
+          gemini_api_key: '${{ secrets.GEMINI_API_KEY }}'
+          use_vertex_ai: '${{ vars.GOOGLE_GENAI_USE_VERTEXAI }}'
+          use_gemini_code_assist: '${{ vars.GOOGLE_GENAI_USE_GCA }}'
           settings: |-
             {
+              "maxSessionTurns": 25,
               "coreTools": [
                 "run_shell_command(echo)",
                 "run_shell_command(gh label list)",
@@ -95,7 +96,7 @@ jobs:
               },
               "sandbox": false
             }
-          prompt: |
+          prompt: |-
             ## Role
 
             You are an issue triage assistant. Analyze issues and apply
