@@ -136,6 +136,11 @@ jobs:
             echo "is_pr=${IS_PR}"
           } >> "${GITHUB_OUTPUT}"
 
+      - name: 'Set up git user for commits'
+        run: |
+          git config --global user.name 'gemini-cli[bot]'
+          git config --global user.email 'gemini-cli[bot]@users.noreply.github.com'
+
       - name: 'Checkout PR branch'
         if: |-
           ${{  steps.get_context.outputs.is_pr == 'true' }}
