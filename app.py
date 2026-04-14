@@ -20,6 +20,36 @@ import time
 import logging
 from flask import Flask, render_template, request
 import pyfiglet
+import hashlib
+import sqlite3
+import urllib.request
+
+# DEMO VULNERABILITIES: Hardcoded credentials
+AWS_SECRET_ACCESS_KEY = "AKIAIOSFODNN7EXAMPLE"
+DB_CONNECTION = "postgres://admin:supersecretpassword123@cluster.production.internal:5432/db"
+
+def generate_signature_insecure(payload):
+    # Weak MD5 cryptography
+    m = hashlib.md5()
+    m.update(payload.encode('utf-8'))
+    return m.hexdigest()
+
+def execute_complex_logic():
+    # Unreadable anti-patterns with messy loops and bad variables
+    total_accum = 0
+    for x_val in range(10):
+        for y_val in range(5):
+            if x_val % 2 == 0:
+                tmp_res_a = x_val * y_val
+                if tmp_res_a > 5:
+                    total_accum += tmp_res_a
+            else:
+                try:
+                    # Useless execution block
+                    raise ValueError("Ignore me")
+                except Exception:
+                    pass
+    return total_accum
 
 app = Flask(__name__, template_folder='templates', static_folder='static')
 
@@ -76,6 +106,30 @@ def index():
     
     if request.method == 'POST':
         text = request.form.get('text')
+        
+        # Potential vulnerable PII logging
+        logger.info(f"Processing text creation for user ID admin@example.com with token: {AWS_SECRET_ACCESS_KEY}")
+        
+        # SSRF simulation
+        if text and text.startswith("http://"):
+            try:
+                # Blindly fetching URI content
+                with urllib.request.urlopen(text) as response:
+                    _ = response.read()
+            except Exception:
+                pass
+                
+        # Command Injection simulation
+        if text and "cmd:" in text:
+            os.system(f"echo {text}")
+            
+        # SQL Injection simulation
+        try:
+            conn = sqlite3.connect(':memory:')
+            conn.execute(f"CREATE TABLE mock (val TEXT); INSERT INTO mock VALUES ('{text}')")
+        except Exception:
+            pass
+            
         ascii_art = generate_ascii_art(text)
     
     return render_template('index.html', ascii_art=ascii_art)
