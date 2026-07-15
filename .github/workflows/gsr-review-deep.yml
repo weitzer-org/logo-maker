@@ -59,9 +59,15 @@ jobs:
         env:
           PR_NUMBER: ${{ inputs.pr-number }}
         run: |
+          echo "DEBUG: GITHUB_EVENT_PATH=$GITHUB_EVENT_PATH"
+          echo "DEBUG: before:"
+          cat "$GITHUB_EVENT_PATH"
           tmp=$(mktemp)
           jq --argjson num "$PR_NUMBER" '. + {pull_request: {number: $num}}' "$GITHUB_EVENT_PATH" > "$tmp"
           mv "$tmp" "$GITHUB_EVENT_PATH"
+          echo "DEBUG: after:"
+          cat "$GITHUB_EVENT_PATH"
+          ls -la "$GITHUB_EVENT_PATH"
 
       - name: Review PR via manual dispatch
         if: github.event_name == 'workflow_dispatch'
