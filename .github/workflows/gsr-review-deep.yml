@@ -11,11 +11,18 @@ name: GSR Deep Review (Agent Swarm)
 #
 # GSR's entrypoint (adk/backend/src/action-entrypoint.ts) hard-requires a
 # pull_request.number in the GITHUB_EVENT_PATH JSON and throws otherwise --
-# a workflow_dispatch event has no such field. The manual-run step below
-# works around this by writing a synthetic event file and pointing
-# GITHUB_EVENT_PATH at it for just that step; if GSR's entrypoint changes
-# this reading, only the manual-run path (not the label-triggered one)
-# would need revisiting.
+# a workflow_dispatch event has no such field. GitHub Actions silently
+# ignores any attempt to override its default env vars (including
+# GITHUB_EVENT_PATH) via a workflow's env: block -- confirmed by testing,
+# not just docs: an earlier version of this workflow tried exactly that and
+# the container received the real, unmodified event file instead. The
+# manual-run step below works around it differently: it mutates the
+# *contents* of the file GITHUB_EVENT_PATH already points to (writable by a
+# normal run: step on the host, and already correctly volume-mounted into
+# the container), injecting a synthetic pull_request field into the real
+# event payload rather than trying to redirect the env var itself. If GSR's
+# entrypoint changes this reading, only the manual-run path (not the
+# label-triggered one) would need revisiting.
 
 on:
   pull_request:
@@ -47,10 +54,14 @@ jobs:
           mode: subagent
           fail-on-severity: none
 
-      - name: Build synthetic PR event for manual runs
+      - name: Inject pull_request number into the real event payload for manual runs
         if: github.event_name == 'workflow_dispatch'
+        env:
+          PR_NUMBER: ${{ inputs.pr-number }}
         run: |
-          echo '{"pull_request": {"number": ${{ inputs.pr-number }}}}' > "$RUNNER_TEMP/gsr-event.json"
+          tmp=$(mktemp)
+          jq --argjson num "$PR_NUMBER" '. + {pull_request: {number: $num}}' "$GITHUB_EVENT_PATH" > "$tmp"
+          mv "$tmp" "$GITHUB_EVENT_PATH"
 
       - name: Review PR via manual dispatch
         if: github.event_name == 'workflow_dispatch'
@@ -59,5 +70,3 @@ jobs:
           gemini-api-key: ${{ secrets.GEMINI_API_KEY }}
           mode: subagent
           fail-on-severity: none
-        env:
-          GITHUB_EVENT_PATH: ${{ format('{0}/gsr-event.json', runner.temp) }}
