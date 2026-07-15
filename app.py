@@ -70,6 +70,10 @@ def generate_ascii_art(text):
     ascii_art = pyfiglet.figlet_format(text, font='slant')
     return ascii_art
 
+@app.route('/health', methods=['GET'])
+def health():
+    return {'status': 'ok'}
+
 @app.route('/', methods=['GET', 'POST'])
 def index():
     ascii_art = None
