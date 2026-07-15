@@ -28,6 +28,14 @@
                             <label for="text">Enter your text:</label>
                             <input type="text" id="text" name="text" placeholder="Your text here..." required>
                         </div>
+                        <div class="form-group">
+                            <label for="font">Font style:</label>
+                            <select id="font" name="font">
+                                {% for font in fonts %}
+                                <option value="{{ font }}" {% if font == selected_font %}selected{% endif %}>{{ font }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
                         <button type="submit" class="generate-btn">Generate ASCII Art</button>
                     </form>
                 </section>

@@ -37,48 +37,33 @@ def after_request(response):
     logger.info(f"Request to {request.path} took {duration:.2f} seconds")
     return response
 
-# Available fonts for ASCII art generation
-# To change the font, simply replace 'slant' in the generate_ascii_art function
-# with one of these options:
-# 'standard', 'slant', '3-d', '3x5', '5lineoblique', 'acrobatic', 'alligator',
-# 'alligator2', 'alphabet', 'avatar', 'banner', 'banner3-D', 'banner3', 'banner4',
-# 'barbwire', 'basic', 'bell', 'big', 'bigchief', 'binary', 'block', 'bubble',
-# 'bulbhead', 'calgphy2', 'caligraphy', 'catwalk', 'chunky', 'coinstak', 'colossal',
-# 'computer', 'contessa', 'contrast', 'cosmic', 'cosmike', 'cricket', 'cursive',
-# 'cyberlarge', 'cybermedium', 'cybersmall', 'diamond', 'digital', 'doh', 'doom',
-# 'dotmatrix', 'drpepper', 'eftichess', 'eftifont', 'eftipiti', 'eftirobot',
-# 'eftitalic', 'eftiwall', 'eftiwater', 'epic', 'fender', 'fourtops', 'fuzzy',
-# 'goofy', 'gothic', 'graffiti', 'hollywood', 'invita', 'isometric1', 'isometric2',
-# 'isometric3', 'isometric4', 'italic', 'ivrit', 'jazmine', 'jerusalem', 'katakana',
-# 'kban', 'larry3d', 'lcd', 'lean', 'letters', 'linux', 'lockergnome', 'madrid',
-# 'marquee', 'maxfour', 'mike', 'mini', 'mirror', 'mnemonic', 'morse', 'moscow',
-# 'nancyj-fancy', 'nancyj-underlined', 'nancyj', 'nipples', 'ntgreek', 'o8',
-# 'ogre', 'pawp', 'peaks', 'pebbles', 'pepper', 'poison', 'puffy', 'pyramid',
-# 'rectangles', 'relief', 'relief2', 'rev', 'roman', 'rot13', 'rounded', 'rowancap',
-# 'rozzo', 'runic', 'runyc', 'sblood', 'script', 'serifcap', 'shadow', 'short',
-# 'slant', 'slide', 'slscript', 'small', 'smisome1', 'smkeyboard', 'smscript',
-# 'smshadow', 'smslant', 'smtengwar', 'speed', 'stampatello', 'standard', 'starwars',
-# 'stellar', 'stop', 'straight', 'tanja', 'tengwar', 'term', 'thick', 'thin',
-# 'threepoint', 'ticks', 'ticksslant', 'tinker-toy', 'tombstone', 'trek', 'tsalagi',
-# 'twopoint', 'univers', 'usaflag', 'wavy', 'weird'
+# Fonts offered in the font-selection dropdown (a curated subset of the
+# fonts pyfiglet ships with).
+AVAILABLE_FONTS = [
+    'slant', 'standard', 'big', 'block', 'bubble', 'digital', 'ivrit',
+    'lean', 'mini', 'script', 'shadow', 'slscript', 'small', 'smslant',
+    'starwars', 'straight',
+]
+DEFAULT_FONT = 'slant'
 
-def generate_ascii_art(text):
+def generate_ascii_art(text, font=DEFAULT_FONT):
     if not text:
         return "Please enter some text"
-    
-    # Change 'slant' to any of the fonts listed above to change the style
-    ascii_art = pyfiglet.figlet_format(text, font='slant')
+
+    ascii_art = pyfiglet.figlet_format(text, font=font)
     return ascii_art
 
 @app.route('/', methods=['GET', 'POST'])
 def index():
     ascii_art = None
-    
+    selected_font = DEFAULT_FONT
+
     if request.method == 'POST':
         text = request.form.get('text')
-        ascii_art = generate_ascii_art(text)
-    
-    return render_template('index.html', ascii_art=ascii_art)
+        selected_font = request.form.get('font', DEFAULT_FONT)
+        ascii_art = generate_ascii_art(text, selected_font)
+
+    return render_template('index.html', ascii_art=ascii_art, fonts=AVAILABLE_FONTS, selected_font=selected_font)
 
 if __name__ == '__main__':
     # When running directly with python app.py, use port 5000
