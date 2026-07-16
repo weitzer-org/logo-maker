@@ -59,15 +59,20 @@ jobs:
         env:
           PR_NUMBER: ${{ inputs.pr-number }}
         run: |
-          echo "DEBUG: GITHUB_EVENT_PATH=$GITHUB_EVENT_PATH"
-          echo "DEBUG: before:"
-          cat "$GITHUB_EVENT_PATH"
-          tmp=$(mktemp)
+          # tmp must be created in the SAME directory as GITHUB_EVENT_PATH so
+          # mv is a same-filesystem atomic rename -- mktemp's default /tmp
+          # location can be a different filesystem/mount namespace than
+          # /home/runner/work/_temp/_github_workflow, and a cross-device mv
+          # (copy+unlink, new inode) may not land inside whatever directory
+          # subtree Docker's bind mount is actually tracking.
+          tmp=$(mktemp "$(dirname "$GITHUB_EVENT_PATH")/event.json.XXXXXX")
           jq --argjson num "$PR_NUMBER" '. + {pull_request: {number: $num}}' "$GITHUB_EVENT_PATH" > "$tmp"
           mv "$tmp" "$GITHUB_EVENT_PATH"
-          echo "DEBUG: after:"
-          cat "$GITHUB_EVENT_PATH"
-          ls -la "$GITHUB_EVENT_PATH"
+
+      - name: DEBUG probe what a fresh container sees at the same mount
+        if: github.event_name == 'workflow_dispatch'
+        run: |
+          docker run --rm -v "$(dirname "$GITHUB_EVENT_PATH"):/github/workflow" alpine cat /github/workflow/"$(basename "$GITHUB_EVENT_PATH")"
 
       - name: Review PR via manual dispatch
         if: github.event_name == 'workflow_dispatch'
