@@ -12,8 +12,7 @@ jobs:
   review:
     runs-on: ubuntu-latest
     steps:
-      - uses: weitzer-org/gsr@feature/agent-selection-backend
+      - uses: weitzer-org/gsr@main
         with:
           gemini-api-key: ${{ secrets.GEMINI_API_KEY }}
           mode: subagent
-          agents: security
